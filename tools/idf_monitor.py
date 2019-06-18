@@ -64,6 +64,7 @@ CTRL_R = '\x72'
 CTRL_T = '\x74'
 CTRL_Y = '\x79'
 CTRL_P = '\x70'
+CTRL_L = '\x6c'
 CTRL_RBRACKET = '\x65'  #e
 MEIN_M = '\x6D'
 schonmal = 0

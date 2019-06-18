@@ -563,7 +563,7 @@ class Monitor(object):
             self.console.cleanup()
         if k == self.exit_key:
             self.event_queue.put((TAG_KEY, self.menu_key)) #mod
-elif k in [CTRL_F, CTRL_A,  MEIN_M]: #mod
+        elif k in [CTRL_F, CTRL_A,  MEIN_M]: #mod
             self.event_queue.put((TAG_KEY, self.menu_key))
             self.event_queue.put((TAG_KEY, k))
 

@@ -222,6 +222,7 @@ class SerialReader(StoppableThread):
     def run(self):
         if not self.serial.is_open:
             self.serial.baudrate = self.baud
+
             #mod
             global schonmal
             if schonmal:
@@ -231,6 +232,7 @@ class SerialReader(StoppableThread):
                 self.serial.open()
                 self.serial.rts = False
                 schonmal=1
+
         try:
             while self.alive:
                 data = self.serial.read(self.serial.in_waiting or 1)
@@ -570,9 +572,9 @@ class Monitor(object):
     def run_make(self, target):
         with self:
             if isinstance(self.make, list):
-                popen_args = self.make + [target]
+                popen_args = self.make + ["-j8",target]
             else:
-                popen_args = [self.make,"-j4", target] #mod
+                popen_args = [self.make,"-j8", target] #mod
             yellow_print("Running %s..." % " ".join(popen_args))
             p = subprocess.Popen(popen_args)
             try:

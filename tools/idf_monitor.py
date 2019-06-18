@@ -56,16 +56,17 @@ from io import open
 key_description = miniterm.key_description
 
 # Control-key characters
-CTRL_A = '\x01'
-CTRL_B = '\x02'
-CTRL_F = '\x06'
-CTRL_H = '\x08'
-CTRL_R = '\x12'
-CTRL_T = '\x14'
-CTRL_Y = '\x19'
-CTRL_P = '\x10'
-CTRL_L = '\x0c'
-CTRL_RBRACKET = '\x1d'  # Ctrl+]
+CTRL_A = '\x61' #mod  alle mods von mir mit #mod
+CTRL_B = '\x62'
+CTRL_F = '\x66'
+CTRL_H = '\x68'
+CTRL_R = '\x72'
+CTRL_T = '\x74'
+CTRL_Y = '\x79'
+CTRL_P = '\x70'
+CTRL_RBRACKET = '\x65'  #e
+MEIN_M = '\x6D'
+schonmal = 0
 
 # ANSI terminal codes (if changed, regular expressions in LineMatcher need to be udpated)
 ANSI_RED = '\033[1;31m'
@@ -221,9 +222,15 @@ class SerialReader(StoppableThread):
     def run(self):
         if not self.serial.is_open:
             self.serial.baudrate = self.baud
-            self.serial.rts = True  # Force an RTS reset on open
-            self.serial.open()
-            self.serial.rts = False
+            #mod
+            global schonmal
+            if schonmal:
+                self.serial.open()
+            else:
+                self.serial.rts = True  # Force an RTS reset on open
+                self.serial.open()
+                self.serial.rts = False
+                schonmal=1
         try:
             while self.alive:
                 data = self.serial.read(self.serial.in_waiting or 1)
@@ -406,9 +413,9 @@ class Monitor(object):
             self._pressed_menu_key = False
         elif key == self.menu_key:
             self._pressed_menu_key = True
-        elif key == self.exit_key:
-            self.console_reader.stop()
-            self.serial_reader.stop()
+        #elif key == self.exit_key: #mod
+        # self.console_reader.stop()
+        #self.serial_reader.stop()
         else:
             try:
                 key = self.translate_eol(key)
@@ -466,7 +473,7 @@ class Monitor(object):
             self.lookup_pc_address(m.group())
 
     def handle_menu_key(self, c):
-        if c == self.exit_key or c == self.menu_key:  # send verbatim
+        if c == self.menu_key:  # send verbatim #mod
             self.serial.write(codecs.encode(c))
         elif c in [CTRL_H, 'h', 'H', '?']:
             red_print(self.get_help_text())
@@ -477,6 +484,11 @@ class Monitor(object):
             self.output_enable(True)
         elif c == CTRL_F:  # Recompile & upload
             self.run_make("flash")
+        elif c == MEIN_M:  # Recompile & upload
+            self.run_make("all")  #mod
+        elif c == CTRL_RBRACKET:   #mod
+            self.console_reader.stop()
+            self.serial_reader.stop()
         elif c == CTRL_A:  # Recompile & upload app only
             self.run_make("app-flash")
         elif c == CTRL_Y:  # Toggle output display
@@ -550,8 +562,8 @@ class Monitor(object):
         finally:
             self.console.cleanup()
         if k == self.exit_key:
-            self.event_queue.put((TAG_KEY, k))
-        elif k in [CTRL_F, CTRL_A]:
+            self.event_queue.put((TAG_KEY, self.menu_key)) #mod
+elif k in [CTRL_F, CTRL_A,  MEIN_M]: #mod
             self.event_queue.put((TAG_KEY, self.menu_key))
             self.event_queue.put((TAG_KEY, k))
 
@@ -560,7 +572,7 @@ class Monitor(object):
             if isinstance(self.make, list):
                 popen_args = self.make + [target]
             else:
-                popen_args = [self.make, target]
+                popen_args = [self.make,"-j4", target] #mod
             yellow_print("Running %s..." % " ".join(popen_args))
             p = subprocess.Popen(popen_args)
             try:

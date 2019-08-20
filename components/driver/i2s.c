@@ -234,6 +234,66 @@ static float i2s_apll_get_fi2s(int bits_per_sample, int sdm0, int sdm1, int sdm2
  * @return     ESP_ERR_INVALID_ARG or ESP_OK
  */
 
+//static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm0, int *sdm1, int *sdm2, int *odir)
+//{
+//    int _odir, _sdm0, _sdm1, _sdm2;
+//    float avg;
+//    float min_rate, max_rate, min_diff;
+//    if (rate/bits_per_sample/2/8 < APLL_I2S_MIN_RATE) {
+//        return ESP_ERR_INVALID_ARG;
+//    }
+//
+//    *sdm0 = 0;
+//    *sdm1 = 0;
+//    *sdm2 = 0;
+//    *odir = 0;
+//    min_diff = APLL_MAX_FREQ;
+//
+//    for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
+//        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, 0);
+//        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, 31);
+//        avg = (max_rate + min_rate)/2;
+//        if(abs(avg - rate) < min_diff) {
+//            min_diff = abs(avg - rate);
+//            *sdm2 = _sdm2;
+//        }
+//    }
+//    min_diff = APLL_MAX_FREQ;
+//    for (_odir = 0; _odir < 32; _odir ++) {
+//        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, *sdm2, _odir);
+//        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, *sdm2, _odir);
+//        avg = (max_rate + min_rate)/2;
+//        if(abs(avg - rate) < min_diff) {
+//            min_diff = abs(avg - rate);
+//            *odir = _odir;
+//        }
+//    }
+//
+//    min_diff = APLL_MAX_FREQ;
+//    for (_sdm1 = 0; _sdm1 < 256; _sdm1 ++) {
+//        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, _sdm1, *sdm2, *odir);
+//        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, _sdm1, *sdm2, *odir);
+//        avg = (max_rate + min_rate)/2;
+//        if (abs(avg - rate) < min_diff) {
+//            min_diff = abs(avg - rate);
+//            *sdm1 = _sdm1;
+//        }
+//    }
+//
+//    min_diff = APLL_MAX_FREQ;
+//    for (_sdm0 = 0; _sdm0 < 256; _sdm0 ++) {
+//        avg = i2s_apll_get_fi2s(bits_per_sample, _sdm0, *sdm1, *sdm2, *odir);
+//        if (abs(avg - rate) < min_diff) {
+//            min_diff = abs(avg - rate);
+//            *sdm0 = _sdm0;
+//        }
+//    }
+//
+//    return ESP_OK;
+//}
+
+int betterApllAlgo = 1;
+//############################################i2s better sample rate
 static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm0, int *sdm1, int *sdm2, int *odir)
 {
     int _odir, _sdm0, _sdm1, _sdm2;
@@ -242,55 +302,205 @@ static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm
     if (rate/bits_per_sample/2/8 < APLL_I2S_MIN_RATE) {
         return ESP_ERR_INVALID_ARG;
     }
-
+    
     *sdm0 = 0;
     *sdm1 = 0;
     *sdm2 = 0;
     *odir = 0;
     min_diff = APLL_MAX_FREQ;
-
-    for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
-        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, 0);
-        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, 31);
-        avg = (max_rate + min_rate)/2;
-        if(abs(avg - rate) < min_diff) {
-            min_diff = abs(avg - rate);
-            *sdm2 = _sdm2;
+    
+    //mscale = 8
+    //int fi2s_clk = rate*channel*bits*m_scale; == rate argument vorgegeben
+    
+    //actual = fi2s_rate/bits/channel/m_scale
+    
+    if(betterApllAlgo==true){
+        ESP_LOGW(I2S_TAG, "betterApllAlgo==true requested fi2s_clk %d Achtung beta", rate);
+        //        *sdm0=0;
+        //        *sdm1=74;
+        //        *sdm2=7;
+        //        *odir=3;
+        
+        
+        int sdm2_tried_arr[9];
+        int odir_tried_arr[32];
+        
+        int num_sdm2_possible;
+        int num_odir_possible;
+        
+        for(int i=0; i< 9; i++) sdm2_tried_arr[i] =0;
+        
+    nommal:
+        
+        for(int i=0; i< 32; i++) odir_tried_arr[i] =0; //reset tried odir
+        num_sdm2_possible=0;
+        min_diff = APLL_MAX_FREQ;
+        
+        for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, 0);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, 31);
+            avg = (max_rate + min_rate)/2;
+            
+            
+            if(max_rate>=rate && min_rate<=rate && sdm2_tried_arr[_sdm2] == 0){ //possible candidate
+                //printf("pos ");
+                num_sdm2_possible++;
+                
+                if(abs(avg - rate) < min_diff) {
+                    //printf("###");
+                    min_diff = abs(avg - rate);
+                    *sdm2 = _sdm2;
+                }
+            }else{
+                //printf("xxx");
+            }
+            
+            //printf("_sdm2 = %d  diff %d  max %d  min %d\r\n", _sdm2, (int)(avg - rate), (int)max_rate, (int)min_rate );
+        }
+        
+        sdm2_tried_arr[*sdm2] =1;
+        
+        if(num_sdm2_possible==0){
+            ESP_LOGW(I2S_TAG, "num_sdm2_possible==0");
+            while(1);
+        }
+        
+        //printf("\r\n");
+        
+        
+        num_odir_possible=0;
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_odir = 0; _odir < 32; _odir ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, *sdm2, _odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, *sdm2, _odir);
+            avg = (max_rate + min_rate)/2;
+            
+            
+            if(max_rate >=rate && min_rate <=rate && odir_tried_arr[_odir] == 0){ //possible candidate
+                //printf("pos ");
+                num_odir_possible++;
+                
+                if(abs(avg - rate) < min_diff) {
+                    //printf("###");
+                    min_diff = abs(avg - rate);
+                    *odir = _odir;
+                }
+            }else{
+                //printf("xxx");
+            }
+            
+            //printf("_odir = %d  diff %d  max %d  min %d\r\n", _odir, (int)(avg - rate), (int)max_rate, (int)min_rate );
+            
+        }
+        
+        odir_tried_arr[*odir] =1;
+        if(num_odir_possible==0){
+            ESP_LOGW(I2S_TAG, "num_odir_possible==0 nommal");
+            goto nommal;
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm1 = 0; _sdm1 < 256; _sdm1 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, _sdm1, *sdm2, *odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, _sdm1, *sdm2, *odir);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm1 = _sdm1;
+            }
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm0 = 0; _sdm0 < 256; _sdm0 ++) {
+            avg = i2s_apll_get_fi2s(bits_per_sample, _sdm0, *sdm1, *sdm2, *odir);
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm0 = _sdm0;
+            }
+        }
+        
+        
+        
+        int finali2s = i2s_apll_get_fi2s(bits_per_sample, *sdm0, *sdm1, *sdm2, *odir);
+        
+        //loop optional, I prefer faster sample rates
+        while(finali2s < rate){
+            if(*sdm0 <255){
+                *sdm0 += 1;
+                printf("finali2s < rate    *sdm0 += 1\r\n");
+            }else{
+                *sdm0=0;
+                if(*sdm1 <255){
+                    *sdm1 += 1;
+                    printf("finali2s < rate    *sdm0 += 1\r\n");
+                }else{
+                    printf("finali2s < rate goto nommal");
+                    goto nommal;
+                }
+            }
+            finali2s = i2s_apll_get_fi2s(bits_per_sample, *sdm0, *sdm1, *sdm2, *odir);
+        }
+        
+        
+        float fail = (100.0 * ((float)finali2s)/rate);
+        
+        if(abs(fail - 100) == 0)
+            ESP_LOGI(I2S_TAG, LOG_COLOR(LOG_COLOR_BLUE)"algo final = %d  = %.5f %% von req, fehler: %.5f %%"LOG_RESET_COLOR,finali2s, fail, fail - 100 );
+        else if(abs(fail - 100) < 2)
+            ESP_LOGW(I2S_TAG, "algo final = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
+        else
+            ESP_LOGE(I2S_TAG, "algo final = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
+        
+    }else{
+        ESP_LOGW(I2S_TAG, "betterApllAlgo==false requested fi2s_clk %d", rate);
+        for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, 0);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, 31);
+            avg = (max_rate + min_rate)/2;
+            if(abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm2 = _sdm2;
+            }
+        }
+        min_diff = APLL_MAX_FREQ;
+        for (_odir = 0; _odir < 32; _odir ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, *sdm2, _odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, *sdm2, _odir);
+            avg = (max_rate + min_rate)/2;
+            if(abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *odir = _odir;
+            }
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm1 = 0; _sdm1 < 256; _sdm1 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, _sdm1, *sdm2, *odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, _sdm1, *sdm2, *odir);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm1 = _sdm1;
+            }
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm0 = 0; _sdm0 < 256; _sdm0 ++) {
+            avg = i2s_apll_get_fi2s(bits_per_sample, _sdm0, *sdm1, *sdm2, *odir);
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm0 = _sdm0;
+            }
         }
     }
-    min_diff = APLL_MAX_FREQ;
-    for (_odir = 0; _odir < 32; _odir ++) {
-        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, *sdm2, _odir);
-        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, *sdm2, _odir);
-        avg = (max_rate + min_rate)/2;
-        if(abs(avg - rate) < min_diff) {
-            min_diff = abs(avg - rate);
-            *odir = _odir;
-        }
-    }
-
-    min_diff = APLL_MAX_FREQ;
-    for (_sdm1 = 0; _sdm1 < 256; _sdm1 ++) {
-        max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, _sdm1, *sdm2, *odir);
-        min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, _sdm1, *sdm2, *odir);
-        avg = (max_rate + min_rate)/2;
-        if (abs(avg - rate) < min_diff) {
-            min_diff = abs(avg - rate);
-            *sdm1 = _sdm1;
-        }
-    }
-
-    min_diff = APLL_MAX_FREQ;
-    for (_sdm0 = 0; _sdm0 < 256; _sdm0 ++) {
-        avg = i2s_apll_get_fi2s(bits_per_sample, _sdm0, *sdm1, *sdm2, *odir);
-        if (abs(avg - rate) < min_diff) {
-            min_diff = abs(avg - rate);
-            *sdm0 = _sdm0;
-        }
-    }
-
+    
     return ESP_OK;
 }
+
+
+
+
 esp_err_t i2s_set_clk(i2s_port_t i2s_num, uint32_t rate, i2s_bits_per_sample_t bits, i2s_channel_t ch)
 {
     int factor = (256%bits)? 384 : 256; // According to hardware codec requirement(supported 256fs or 384fs)

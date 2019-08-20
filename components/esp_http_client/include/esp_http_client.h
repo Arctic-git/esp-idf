@@ -181,6 +181,7 @@ esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *co
  *  - ESP_FAIL on error
  */
 esp_err_t esp_http_client_perform(esp_http_client_handle_t client);
+    esp_err_t esp_http_client_perform_mit_abbrechen(esp_http_client_handle_t client, int* sollabbrechen);
 
 /**
  * @brief      Set URL for client, when performing this behavior, the options in the URL will replace the old ones

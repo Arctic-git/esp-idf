@@ -292,7 +292,7 @@ static float i2s_apll_get_fi2s(int bits_per_sample, int sdm0, int sdm1, int sdm2
 //    return ESP_OK;
 //}
 
-int betterApllAlgo = 1;
+int betterApllAlgo = 2;
 //############################################i2s better sample rate
 static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm0, int *sdm1, int *sdm2, int *odir)
 {
@@ -314,7 +314,58 @@ static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm
     
     //actual = fi2s_rate/bits/channel/m_scale
     
-    if(betterApllAlgo==true){
+    if(betterApllAlgo==2){ //newest esp idf algo fixes problem?
+        for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, 0);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, 31);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm2 = _sdm2;
+            }
+        }
+        min_diff = APLL_MAX_FREQ;
+        for (_odir = 0; _odir < 32; _odir ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, *sdm2, _odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, *sdm2, _odir);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *odir = _odir;
+            }
+        }
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm2 = 4; _sdm2 < 9; _sdm2 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, 255, _sdm2, *odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, 0, _sdm2, *odir);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm2 = _sdm2;
+            }
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm1 = 0; _sdm1 < 256; _sdm1 ++) {
+            max_rate = i2s_apll_get_fi2s(bits_per_sample, 255, _sdm1, *sdm2, *odir);
+            min_rate = i2s_apll_get_fi2s(bits_per_sample, 0, _sdm1, *sdm2, *odir);
+            avg = (max_rate + min_rate)/2;
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm1 = _sdm1;
+            }
+        }
+        
+        min_diff = APLL_MAX_FREQ;
+        for (_sdm0 = 0; _sdm0 < 256; _sdm0 ++) {
+            avg = i2s_apll_get_fi2s(bits_per_sample, _sdm0, *sdm1, *sdm2, *odir);
+            if (abs(avg - rate) < min_diff) {
+                min_diff = abs(avg - rate);
+                *sdm0 = _sdm0;
+            }
+        }
+
+    }else if(betterApllAlgo==1){
         ESP_LOGW(I2S_TAG, "betterApllAlgo==true requested fi2s_clk %d Achtung beta", rate);
         //        *sdm0=0;
         //        *sdm1=74;
@@ -420,8 +471,6 @@ static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm
             }
         }
         
-        
-        
         int finali2s = i2s_apll_get_fi2s(bits_per_sample, *sdm0, *sdm1, *sdm2, *odir);
         
         //loop optional, I prefer faster sample rates
@@ -442,15 +491,7 @@ static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm
             finali2s = i2s_apll_get_fi2s(bits_per_sample, *sdm0, *sdm1, *sdm2, *odir);
         }
         
-        
-        float fail = (100.0 * ((float)finali2s)/rate);
-        
-        if(abs(fail - 100) == 0)
-            ESP_LOGI(I2S_TAG, LOG_COLOR(LOG_COLOR_BLUE)"algo final = %d  = %.5f %% von req, fehler: %.5f %%"LOG_RESET_COLOR,finali2s, fail, fail - 100 );
-        else if(abs(fail - 100) < 2)
-            ESP_LOGW(I2S_TAG, "algo final = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
-        else
-            ESP_LOGE(I2S_TAG, "algo final = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
+    
         
     }else{
         ESP_LOGW(I2S_TAG, "betterApllAlgo==false requested fi2s_clk %d", rate);
@@ -494,6 +535,22 @@ static esp_err_t i2s_apll_calculate_fi2s(int rate, int bits_per_sample, int *sdm
             }
         }
     }
+    
+    
+    
+    int finali2s = i2s_apll_get_fi2s(bits_per_sample, *sdm0, *sdm1, *sdm2, *odir);
+    
+    float fail = (100.0 * ((float)finali2s)/rate);
+    
+    if(abs(fail - 100) == 0)
+        ESP_LOGI(I2S_TAG, LOG_COLOR(LOG_COLOR_BLUE)"samplerate = %d  = %.5f %% von req, fehler: %.5f %%"LOG_RESET_COLOR,finali2s, fail, fail - 100 );
+    else if(abs(fail - 100) < 2)
+        ESP_LOGW(I2S_TAG, "samplerate = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
+    else
+        ESP_LOGE(I2S_TAG, "samplerate = %d  = %.5f %% von req, fehler: %.5f %%",finali2s, fail, fail - 100 );
+    
+    
+    
     
     return ESP_OK;
 }

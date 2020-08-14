@@ -296,9 +296,9 @@ inline void trc_dump_buffer(const char *prefix, uint8_t *data, uint16_t len)
 #endif
 
 #ifdef  CONFIG_BT_LOG_HID_TRACE_LEVEL
-#define HID_INITIAL_TRACE_LEVEL             CONFIG_BT_LOG_HID_TRACE_LEVEL
+#define HIDH_INITIAL_TRACE_LEVEL             CONFIG_BT_LOG_HID_TRACE_LEVEL
 #else
-#define HID_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING
+#define HIDH_INITIAL_TRACE_LEVEL             BT_TRACE_LEVEL_WARNING
 #endif
 
 #ifdef  CONFIG_BT_LOG_APPL_TRACE_LEVEL

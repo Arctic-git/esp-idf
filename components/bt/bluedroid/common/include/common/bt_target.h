@@ -39,6 +39,11 @@
 
 #include "stack/dyn_mem.h"    /* defines static and/or dynamic memory for components */
 
+#if CONFIG_BT_HID_HOST_ENABLED
+#define HID_HOST_INCLUDED           TRUE
+#define BTA_HH_INCLUDED             TRUE
+#endif /* UC_BT_HID_HOST_ENABLED */
+
 /******************************************************************************
 **
 ** Classic BT features

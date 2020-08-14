@@ -35,7 +35,7 @@
 #include "stack/l2c_api.h"
 #include "bta/utl.h"
 
-#include "osi/include/log.h"
+//#include "osi/include/log.h"
 
 /*****************************************************************************
 **  Constants
@@ -67,7 +67,7 @@ void BTA_HhEnable(tBTA_SEC sec_mask, tBTA_HH_CBACK *p_cback)
     bta_sys_register(BTA_ID_HH, &bta_hh_reg);
 
     APPL_TRACE_API("%s sec_mask:0x%x p_cback:%p", __func__, sec_mask, p_cback);
-    p_buf = (tBTA_HH_API_ENABLE *)osi_malloc((UINT16)sizeof(tBTA_HH_API_ENABLE));
+    p_buf = (tBTA_HH_API_ENABLE *)malloc((UINT16)sizeof(tBTA_HH_API_ENABLE));
 
     if (p_buf != NULL) {
         memset(p_buf, 0, sizeof(tBTA_HH_API_ENABLE));
@@ -95,7 +95,7 @@ void BTA_HhDisable(void)
     BT_HDR  *p_buf;
 
     bta_sys_deregister(BTA_ID_HH);
-    if ((p_buf = (BT_HDR *)osi_malloc(sizeof(BT_HDR))) != NULL) {
+    if ((p_buf = (BT_HDR *)malloc(sizeof(BT_HDR))) != NULL) {
         p_buf->event = BTA_HH_API_DISABLE_EVT;
         bta_sys_sendmsg(p_buf);
     }
@@ -114,7 +114,7 @@ void BTA_HhClose(UINT8 dev_handle)
 {
     BT_HDR    *p_buf;
 
-    if ((p_buf = (BT_HDR *)osi_malloc((UINT16)sizeof(BT_HDR))) != NULL) {
+    if ((p_buf = (BT_HDR *)malloc((UINT16)sizeof(BT_HDR))) != NULL) {
         memset(p_buf, 0, sizeof(BT_HDR));
         p_buf->event            = BTA_HH_API_CLOSE_EVT;
         p_buf->layer_specific   = (UINT16) dev_handle;
@@ -137,7 +137,7 @@ void BTA_HhOpen(BD_ADDR dev_bda, tBTA_HH_PROTO_MODE mode, tBTA_SEC sec_mask)
 {
     tBTA_HH_API_CONN *p_buf;
 
-    p_buf = (tBTA_HH_API_CONN *)osi_malloc((UINT16)sizeof(tBTA_HH_API_CONN));
+    p_buf = (tBTA_HH_API_CONN *)malloc((UINT16)sizeof(tBTA_HH_API_CONN));
 
     if (p_buf != NULL) {
         memset((void *)p_buf, 0, sizeof(tBTA_HH_API_CONN));
@@ -165,7 +165,7 @@ static void bta_hh_snd_write_dev(UINT8 dev_handle, UINT8 t_type, UINT8 param,
     tBTA_HH_CMD_DATA *p_buf;
     UINT16          len = (UINT16) (sizeof(tBTA_HH_CMD_DATA) );
 
-    if ((p_buf = (tBTA_HH_CMD_DATA *)osi_malloc(len)) != NULL) {
+    if ((p_buf = (tBTA_HH_CMD_DATA *)malloc(len)) != NULL) {
         memset(p_buf, 0, sizeof(tBTA_HH_CMD_DATA));
 
         p_buf->hdr.event = BTA_HH_API_WRITE_DEV_EVT;
@@ -321,7 +321,7 @@ void BTA_HhGetDscpInfo(UINT8 dev_handle)
 {
     BT_HDR    *p_buf;
 
-    if ((p_buf = (BT_HDR *)osi_malloc((UINT16)sizeof(BT_HDR))) != NULL) {
+    if ((p_buf = (BT_HDR *)malloc((UINT16)sizeof(BT_HDR))) != NULL) {
         memset(p_buf, 0, sizeof(BT_HDR));
         p_buf->event            = BTA_HH_API_GET_DSCP_EVT;
         p_buf->layer_specific   = (UINT16) dev_handle;
@@ -348,7 +348,7 @@ void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
     tBTA_HH_MAINT_DEV    *p_buf;
     UINT16  len = sizeof(tBTA_HH_MAINT_DEV) + dscp_info.descriptor.dl_len;
 
-    p_buf = (tBTA_HH_MAINT_DEV *)osi_malloc(len);
+    p_buf = (tBTA_HH_MAINT_DEV *)malloc(len);
 
     if (p_buf != NULL) {
         memset(p_buf, 0, sizeof(tBTA_HH_MAINT_DEV));
@@ -388,7 +388,7 @@ void BTA_HhRemoveDev(UINT8 dev_handle )
 {
     tBTA_HH_MAINT_DEV    *p_buf;
 
-    p_buf = (tBTA_HH_MAINT_DEV *)osi_malloc((UINT16)sizeof(tBTA_HH_MAINT_DEV));
+    p_buf = (tBTA_HH_MAINT_DEV *)malloc((UINT16)sizeof(tBTA_HH_MAINT_DEV));
 
     if (p_buf != NULL) {
         memset(p_buf, 0, sizeof(tBTA_HH_MAINT_DEV));
@@ -416,7 +416,7 @@ void BTA_HhUpdateLeScanParam(UINT8 dev_handle, UINT16 scan_int, UINT16 scan_win)
 {
     tBTA_HH_SCPP_UPDATE    *p_buf;
 
-    p_buf = (tBTA_HH_SCPP_UPDATE *)osi_malloc((UINT16)sizeof(tBTA_HH_SCPP_UPDATE));
+    p_buf = (tBTA_HH_SCPP_UPDATE *)malloc((UINT16)sizeof(tBTA_HH_SCPP_UPDATE));
 
     if (p_buf != NULL) {
         memset(p_buf, 0, sizeof(tBTA_HH_SCPP_UPDATE));

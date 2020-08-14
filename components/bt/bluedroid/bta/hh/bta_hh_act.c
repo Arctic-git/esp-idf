@@ -196,9 +196,9 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
         }
 
 #if BTA_HH_DEBUG
-        APPL_TRACE_EVENT("bta_hh_sdp_cback: p_cb: %d result 0x%02x, \
-                            attr_mask 0x%02x, handle %x", \
-                         p_cb, result, attr_mask, p_cb->hid_handle);
+/*        APPL_TRACE_EVENT("bta_hh_sdp_cback: p_cb: %d result 0x%02x, \
+                           attr_mask 0x%02x, handle %x", \
+                         p_cb, result, attr_mask, p_cb->hid_handle);*/
 #endif
 
         /* check to see type of device is supported , and should not been added before */
@@ -261,7 +261,7 @@ static void bta_hh_di_sdp_cback(UINT16 result)
     tSDP_DI_GET_RECORD  di_rec;
     tHID_STATUS ret;
 #if BTA_HH_DEBUG
-    APPL_TRACE_EVENT("bta_hh_di_sdp_cback: p_cb: %d result 0x%02x", p_cb, result);
+//    APPL_TRACE_EVENT("bta_hh_di_sdp_cback: p_cb: %d result 0x%02x", p_cb, result);
 #endif
 
     /* if DI record does not exist on remote device, vendor_id in tBTA_HH_DEV_DSCP_INFO will be
@@ -358,7 +358,7 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     }
     /* GetSDPRecord. at one time only one SDP precedure can be active */
     else if (!bta_hh_cb.p_disc_db) {
-        bta_hh_cb.p_disc_db = (tSDP_DISCOVERY_DB *) osi_malloc(p_bta_hh_cfg->sdp_db_size);
+        bta_hh_cb.p_disc_db = (tSDP_DISCOVERY_DB *) malloc(p_bta_hh_cfg->sdp_db_size);
 
         if (bta_hh_cb.p_disc_db == NULL) {
             status = BTA_HH_ERR_NO_RES;
@@ -1160,7 +1160,7 @@ static void bta_hh_cback (UINT8 dev_handle, BD_ADDR addr, UINT8 event,
     }
 
     if (sm_event != BTA_HH_INVALID_EVT &&
-            (p_buf = (tBTA_HH_CBACK_DATA *)osi_malloc(sizeof(tBTA_HH_CBACK_DATA) +
+            (p_buf = (tBTA_HH_CBACK_DATA *)malloc(sizeof(tBTA_HH_CBACK_DATA) +
                      sizeof(BT_HDR))) != NULL) {
         p_buf->hdr.event  = sm_event;
         p_buf->hdr.layer_specific = (UINT16)dev_handle;

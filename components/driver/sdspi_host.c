@@ -331,7 +331,8 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
         .pull_up_en = true
     };
     if (slot_config->gpio_cd != SDSPI_SLOT_NO_CD) {
-        io_conf.pin_bit_mask |= (1 << slot_config->gpio_cd);
+        //OMG BUG disabled uart input!!! 35 verändert gpio 3
+        io_conf.pin_bit_mask |= ((uint64_t)1 << slot_config->gpio_cd); //fix: zu uint64 casten
         s_slots[slot].gpio_cd = slot_config->gpio_cd;
     } else {
         s_slots[slot].gpio_cd = GPIO_UNUSED;
@@ -345,7 +346,7 @@ esp_err_t sdspi_host_init_slot(int slot, const sdspi_slot_config_t* slot_config)
     }
 
     if (io_conf.pin_bit_mask != 0) {
-        ret = gpio_config(&io_conf);
+        ret = gpio_config(&io_conf); //problem when pin >31?
         if (ret != ESP_OK) {
             ESP_LOGD(TAG, "gpio_config (CD/WP) failed with rc=0x%x", ret);
             goto cleanup;

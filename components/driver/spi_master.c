@@ -398,7 +398,7 @@ esp_err_t spi_bus_add_device(spi_host_device_t host, const spi_device_interface_
                                         !(spihost[host]->flags & SPICOMMON_BUSFLAG_NATIVE_PINS),
                                         dev_config->input_delay_ns, &freq,
                                         &temp_timing_conf);
-
+    ESP_LOGI(SPI_TAG, "freq %d", freq);
     SPI_CHECK(ret==ESP_OK, "assigned clock speed not supported", ret);
 
 
